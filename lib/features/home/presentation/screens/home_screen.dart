@@ -26,14 +26,12 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: BlocBuilder<HealthBloc, HealthState>(
           builder: (context, state) {
-            // 🔄 Loading
+            // 🔄 Loading state
             if (state is HealthLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
-            // ❌ Error
+            // ❌ Error state
             if (state is HealthError) {
               return Center(
                 child: Text(
@@ -46,14 +44,15 @@ class HomeScreen extends StatelessWidget {
               );
             }
 
-            // ✅ Loaded
+            // ✅ Loaded state
             if (state is HealthLoaded) {
-              final totalSteps =
-              state.weeklySteps.fold(0, (a, b) => a + b);
+              final totalSteps = state.weeklySteps.fold(0, (a, b) => a + b);
 
               return Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -77,7 +76,7 @@ class HomeScreen extends StatelessWidget {
 
                     const SizedBox(height: 32),
 
-                    // 👣 Total Steps
+                    // 👣 Steps
                     Text(
                       totalSteps.toString(),
                       style: GoogleFonts.googleSans(
@@ -97,11 +96,11 @@ class HomeScreen extends StatelessWidget {
 
                     const SizedBox(height: 32),
 
-                    // 📈 Steps Chart
+                    // 📈 Steps Chart (FIXED SIZE)
                     Expanded(
                       child: CustomPaint(
-                        painter:
-                        StepLineChartPainter(state.weeklySteps),
+                        painter: StepLineChartPainter(state.weeklySteps),
+                        child: const SizedBox.expand(),
                       ),
                     ),
                   ],
@@ -144,24 +143,18 @@ class StepLineChartPainter extends CustomPainter {
     int maxSteps = steps.reduce((a, b) => a > b ? a : b);
     if (maxSteps == 0) maxSteps = 1;
 
-    // Horizontal grid lines
+    // ── Horizontal grid lines
     for (int i = 0; i <= 5; i++) {
       final y = size.height - (i * size.height / 5);
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        gridPaint,
-      );
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
     final spacing = size.width / (steps.length - 1);
-
     final path = Path();
 
     for (int i = 0; i < steps.length; i++) {
       final x = spacing * i;
-      final y =
-          size.height - (steps[i] / maxSteps) * size.height;
+      final y = size.height - (steps[i] / maxSteps) * size.height;
 
       if (i == 0) {
         path.moveTo(x, y);
@@ -174,12 +167,9 @@ class StepLineChartPainter extends CustomPainter {
 
     canvas.drawPath(path, linePaint);
 
-    // X-axis labels
+    // ── X-axis labels
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final textStyle = GoogleFonts.googleSans(
-      fontSize: 12,
-      color: Colors.black,
-    );
+    final textStyle = GoogleFonts.googleSans(fontSize: 12, color: Colors.black);
 
     for (int i = 0; i < steps.length; i++) {
       final tp = TextPainter(
