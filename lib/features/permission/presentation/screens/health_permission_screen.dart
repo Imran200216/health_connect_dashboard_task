@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health/health.dart';
+import 'package:health_connect_dashboard/core/constants/app_router_constants.dart';
 import 'package:health_connect_dashboard/core/utils/logger_utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:health_connect_dashboard/core/constants/app_assets_constants.dart';
@@ -22,28 +24,53 @@ class _HealthPermissionScreenState extends State<HealthPermissionScreen> {
     final health = Health();
     await health.configure();
 
-    final types = [
+    // Define all possible types
+    final allTypes = [
       HealthDataType.STEPS,
       HealthDataType.HEART_RATE,
       HealthDataType.ACTIVITY_INTENSITY,
       HealthDataType.DISTANCE_WALKING_RUNNING,
     ];
-    final permissions = List.filled(types.length, HealthDataAccess.READ_WRITE);
+
+    // Filter only supported types
+    final supportedTypes = <HealthDataType>[];
+    for (var type in allTypes) {
+      if (await health.isDataTypeAvailable(type)) {
+        supportedTypes.add(type);
+      } else {
+        LoggerUtils.logInfo("$type not available on this device");
+      }
+    }
+
+    if (supportedTypes.isEmpty) {
+      _showSnackBar(
+        "No Health Connect data types available on this device",
+        Colors.red,
+      );
+      setState(() => _isLoading = false);
+      _navigateToHome();
+      return;
+    }
+
+    final permissions = List.filled(
+      supportedTypes.length,
+      HealthDataAccess.READ_WRITE,
+    );
 
     try {
-      // 1️⃣ Check current Health Connect permissions
+      // Check current Health Connect permissions
       bool? hasPermissions = await health.hasPermissions(
-        types,
+        supportedTypes,
         permissions: permissions,
       );
 
       if (hasPermissions == true) {
         _showSnackBar("Permissions already granted!", Colors.green);
-        setState(() => _isLoading = false);
+        _navigateToHome();
         return;
       }
 
-      // 2️⃣ Request Activity Recognition & Location permissions
+      // Request Activity Recognition & Location permissions
       final activityStatus = await Permission.activityRecognition.request();
       final locationStatus = await Permission.location.request();
 
@@ -52,13 +79,13 @@ class _HealthPermissionScreenState extends State<HealthPermissionScreen> {
           "Activity Recognition permission is required",
           Colors.orange,
         );
-        setState(() => _isLoading = false);
+        _navigateToHome();
         return;
       }
 
-      // 3️⃣ Request Health Connect authorization
+      // Request Health Connect authorization
       bool? granted = await health.requestAuthorization(
-        types,
+        supportedTypes,
         permissions: permissions,
       );
 
@@ -94,7 +121,10 @@ class _HealthPermissionScreenState extends State<HealthPermissionScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context);
+              _navigateToHome(); // go next even if denied
+            },
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -107,6 +137,10 @@ class _HealthPermissionScreenState extends State<HealthPermissionScreen> {
         ],
       ),
     );
+  }
+
+  void _navigateToHome() {
+    GoRouter.of(context).pushReplacementNamed(AppRouterConstants.home);
   }
 
   @override
@@ -167,7 +201,6 @@ class _HealthPermissionScreenState extends State<HealthPermissionScreen> {
                   onPressed: _isLoading
                       ? null
                       : _checkAndRequestHealthPermissions,
-
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     disabledBackgroundColor: Colors.grey,

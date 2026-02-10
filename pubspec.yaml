@@ -35,6 +35,9 @@ dependencies:
   # logger
   logger: ^2.6.2
 
+  # pedometer
+  pedometer: ^4.1.1
+
 
 
 
